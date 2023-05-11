@@ -14,12 +14,21 @@ import {
 	CompletionItemKind,
 	TextDocumentPositionParams,
 	TextDocumentSyncKind,
-	InitializeResult
+	InitializeResult,
+	CodeAction
 } from 'vscode-languageserver/node';
+
+import * as fs from 'fs'
+import * as os from 'os'
+import * as path from 'path'
 
 import {
 	TextDocument
 } from 'vscode-languageserver-textdocument';
+
+function log(s: string): void {
+	fs.appendFileSync(path.join(os.homedir(), 'out.txt'), s + '\n');
+}
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -34,6 +43,7 @@ let hasDiagnosticRelatedInformationCapability = false;
 
 connection.onInitialize((params: InitializeParams) => {
 	const capabilities = params.capabilities;
+	log(JSON.stringify(capabilities))
 
 	// Does the client support the `workspace/configuration` request?
 	// If not, we fall back using global settings.
@@ -54,6 +64,9 @@ connection.onInitialize((params: InitializeParams) => {
 			textDocumentSync: TextDocumentSyncKind.Incremental,
 			// Tell the client that this server supports code completion.
 			completionProvider: {
+				resolveProvider: true
+			},
+			codeActionProvider: {
 				resolveProvider: true
 			}
 		}
@@ -221,6 +234,32 @@ connection.onCompletionResolve(
 		return item;
 	}
 );
+
+connection.onCodeAction(({range, textDocument}) =>  {
+	log("got code action request!");
+	return [
+		{
+			title: "code action",
+			edit: undefined,
+			data: { uri: textDocument.uri, range },
+		}
+	];
+})
+
+connection.onCodeActionResolve((codeAction) =>  {
+	log("got resolve request!");
+	return {
+		edit: {
+		changes: {
+			[codeAction.data.uri]: [{newText: "the new text", range: codeAction.data.range}]
+			},
+		},
+		...codeAction
+	}
+}
+
+
+)
 
 // Make the text document manager listen on the connection
 // for open, change and close text document events

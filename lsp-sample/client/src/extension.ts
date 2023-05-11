@@ -4,14 +4,21 @@
  * ------------------------------------------------------------------------------------------ */
 
 import * as path from 'path';
+import * as fs from 'fs';
+import * as os from 'os';
 import { workspace, ExtensionContext } from 'vscode';
 
 import {
+	InitializeParams,
 	LanguageClient,
 	LanguageClientOptions,
 	ServerOptions,
 	TransportKind
 } from 'vscode-languageclient/node';
+
+function log(s: string): void {
+	fs.appendFileSync(path.join(os.homedir(), 'out.txt'), s + '\n');
+}
 
 let client: LanguageClient;
 
@@ -38,11 +45,25 @@ export function activate(context: ExtensionContext) {
 		synchronize: {
 			// Notify the server about file changes to '.clientrc files contained in the workspace
 			fileEvents: workspace.createFileSystemWatcher('**/.clientrc')
-		}
+		},
+		
+	
 	};
 
+	log('client init')
+
+	class LC extends LanguageClient {
+		protected fillInitializeParams(params: InitializeParams): void {
+			log("client fillInitializeParams");
+			params.capabilities.textDocument.codeAction.dataSupport = true;
+			params.capabilities.textDocument.codeAction.resolveSupport = {
+				properties: ["edit"]
+			};
+		}
+	}
+
 	// Create the language client and start the client.
-	client = new LanguageClient(
+	client = new LC(
 		'languageServerExample',
 		'Language Server Example',
 		serverOptions,
