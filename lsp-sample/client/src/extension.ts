@@ -5,22 +5,25 @@
 
 import * as path from 'path';
 import * as fs from 'fs';
-import * as os from 'os';
-import { workspace, ExtensionContext } from 'vscode';
+import { workspace, ExtensionContext, CodeAction, WorkspaceEdit } from 'vscode';
 
 import {
-	InitializeParams,
 	LanguageClient,
 	LanguageClientOptions,
 	ServerOptions,
-	TransportKind
+	TransportKind,
+
 } from 'vscode-languageclient/node';
+import {
+	commands
+} from 'vscode'
+
+const date = new Date();
+const logFile = `/tmp/log-${date.getUTCHours()}:${date.getUTCMinutes()}:${date.getUTCSeconds()}`;
 
 function log(s: string): void {
-	fs.appendFileSync(path.join(os.homedir(), 'out.txt'), s + '\n');
+	fs.appendFileSync(logFile, s + '\n');
 }
-
-let client: LanguageClient;
 
 export function activate(context: ExtensionContext) {
 	// The server is implemented in node
@@ -37,7 +40,6 @@ export function activate(context: ExtensionContext) {
 			transport: TransportKind.ipc,
 		}
 	};
-
 	// Options to control the language client
 	const clientOptions: LanguageClientOptions = {
 		// Register the server for plain text documents
@@ -46,37 +48,40 @@ export function activate(context: ExtensionContext) {
 			// Notify the server about file changes to '.clientrc files contained in the workspace
 			fileEvents: workspace.createFileSystemWatcher('**/.clientrc')
 		},
-		
-	
+		middleware: {
+			async resolveCodeAction(rawAction, token, next): Promise<CodeAction | null | undefined> {
+				log('resolveCodeAction');
+				const action = await next(rawAction, token);
+				action.edit = new WorkspaceEdit();
+				action.command = {
+					command: commandName,
+					title: action.title,
+					arguments: [],
+				}
+				return action;
+			}
+		}
 	};
 
 	log('client init')
 
-	class LC extends LanguageClient {
-		// protected fillInitializeParams(params: InitializeParams): void {
-		// 	log("client fillInitializeParams");
-		// 	params.capabilities.textDocument.codeAction.dataSupport = true;
-		// 	params.capabilities.textDocument.codeAction.resolveSupport = {
-		// 		properties: ["edit"]
-		// 	};
-		// }
-	}
-
 	// Create the language client and start the client.
-	client = new LC(
+	const client = new LanguageClient(
 		'languageServerExample',
 		'Language Server Example',
 		serverOptions,
 		clientOptions
 	);
 
+	const commandName = `my-command-${Math.random()}-${Math.random()}`
+
+	commands.registerCommand(commandName, async () => {
+		log('running command');
+	});
+
+
+	log('client start')
+
 	// Start the client. This will also launch the server
 	client.start();
-}
-
-export function deactivate(): Thenable<void> | undefined {
-	if (!client) {
-		return undefined;
-	}
-	return client.stop();
 }
