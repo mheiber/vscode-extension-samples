@@ -53,13 +53,13 @@ export function activate(context: ExtensionContext) {
 	log('client init')
 
 	class LC extends LanguageClient {
-		protected fillInitializeParams(params: InitializeParams): void {
-			log("client fillInitializeParams");
-			params.capabilities.textDocument.codeAction.dataSupport = true;
-			params.capabilities.textDocument.codeAction.resolveSupport = {
-				properties: ["edit"]
-			};
-		}
+		// protected fillInitializeParams(params: InitializeParams): void {
+		// 	log("client fillInitializeParams");
+		// 	params.capabilities.textDocument.codeAction.dataSupport = true;
+		// 	params.capabilities.textDocument.codeAction.resolveSupport = {
+		// 		properties: ["edit"]
+		// 	};
+		// }
 	}
 
 	// Create the language client and start the client.

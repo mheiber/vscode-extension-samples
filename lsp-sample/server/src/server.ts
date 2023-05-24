@@ -244,7 +244,7 @@ connection.onCodeAction(({range, textDocument}) =>  {
 			data: { uri: textDocument.uri, range },
 		}
 	];
-})
+});
 
 connection.onCodeActionResolve((codeAction) =>  {
 	log("got resolve request!");
